@@ -3,6 +3,7 @@ import { IoMdArrowRoundBack } from "react-icons/io";
 import { api } from "../services/api";
 import EmailBuilderEditor from "../components/EmailBuilderEditor/EmailBuilderEditor";
 import TestSetting from "../components/TestSetting/TestSetting";
+import { Link } from "react-router-dom";
 
 const EmailBuilder = () => {
   const [htmlContent, setHtmlContent] = useState("");
@@ -129,10 +130,10 @@ const EmailBuilder = () => {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <button className="flex items-center text-gray-700 hover:text-gray-900 transition-colors duration-200">
+            <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors duration-200">
               <IoMdArrowRoundBack className="h-5 w-5 mr-2" />
               <span>Back to Home</span>
-            </button>
+            </Link>
             <h1 className="text-xl font-semibold text-gray-900">
               Email Builder
             </h1>

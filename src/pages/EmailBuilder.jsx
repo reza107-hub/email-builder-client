@@ -1,16 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { api } from "../services/api";
-import PreviewEmail from "../components/PreviewEmail/PreviewEmail";
 import EmailBuilderEditor from "../components/EmailBuilderEditor/EmailBuilderEditor";
 import TestSetting from "../components/TestSetting/TestSetting";
 
 const EmailBuilder = () => {
+  const [htmlContent, setHtmlContent] = useState("");
   const [emailData, setEmailData] = useState({
     title: "",
     content: "",
-    footer: "",
-    image: null,
+    image: "",
   });
   const [titleSettings, setTitleSettings] = useState({
     textAlign: "left",
@@ -19,12 +18,6 @@ const EmailBuilder = () => {
     fontWeight: "normal",
   });
   const [contentSettings, setContentSettings] = useState({
-    textAlign: "left",
-    color: "#000000",
-    fontSize: "16px",
-    fontWeight: "normal",
-  });
-  const [footerSettings, setFooterSettings] = useState({
     textAlign: "left",
     color: "#000000",
     fontSize: "16px",
@@ -55,13 +48,7 @@ const EmailBuilder = () => {
     }));
   };
 
-  const handleFooterSettingsChange = (e) => {
-    const { name, value } = e.target;
-    setFooterSettings((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  // Add function to compile template with current settings
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -77,6 +64,64 @@ const EmailBuilder = () => {
       }
     }
   };
+
+  const handleUpdateConfig = async () => {
+    const data = {
+      logoUrl: emailData.image,
+      title: emailData.title,
+      body: emailData.content,
+      titleSettings,
+      contentSettings,
+    };
+    try {
+      const response = await api.updateConfig(data);
+      setHtmlContent(response.html);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      alert("Error updating template");
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    const data = {
+      logoUrl: emailData.image,
+      title: emailData.title,
+      body: emailData.content,
+      titleSettings,
+      contentSettings,
+    };
+    try {
+      await api.renderAndDownloadTemplate(data);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchLayout = async () => {
+      try {
+        const response = await api.getEmailLayout();
+        const initialHtml = response.layout
+          .replace("{{logoUrl}}", "")
+          .replace("{{title}}", "Your Title")
+          .replace("{{body}}", "Your Content")
+          .replace("{{titleColor}}", titleSettings.color)
+          .replace("{{titleFontSize}}", titleSettings.fontSize)
+          .replace("{{titleAlign}}", titleSettings.textAlign)
+          .replace("{{titleFontWeight}}", titleSettings.fontWeight)
+          .replace("{{contentColor}}", contentSettings.color)
+          .replace("{{contentFontSize}}", contentSettings.fontSize)
+          .replace("{{contentAlign}}", contentSettings.textAlign)
+          .replace("{{contentFontWeight}}", contentSettings.fontWeight);
+        setHtmlContent(initialHtml);
+      } catch (error) {
+        console.error("Error fetching layout:", error);
+      }
+    };
+
+    fetchLayout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -101,57 +146,65 @@ const EmailBuilder = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* editor section */}
-          <EmailBuilderEditor
-            emailData={emailData}
-            handleImageUpload={handleImageUpload}
-            handleInputChange={handleInputChange}
-            handleSettingsChange={handleTitleSettingsChange}
-            textSettings={titleSettings}
-          />
-
-          {/* preview */}
-          <PreviewEmail
-            emailData={emailData}
-            titleSettings={titleSettings}
-            contentSettings={contentSettings}
-            footerSettings={footerSettings}
-          />
 
           <div>
-            {/* title settings */}
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Title Settings
-              </h2>
-              <TestSetting
-                label="Title Settings"
-                textSettings={titleSettings}
-                handleSettingsChange={handleTitleSettingsChange}
-              />
-            </div>
+            <EmailBuilderEditor
+              emailData={emailData}
+              handleImageUpload={handleImageUpload}
+              handleInputChange={handleInputChange}
+              handleSettingsChange={handleTitleSettingsChange}
+              textSettings={titleSettings}
+            />
 
-            {/* content settings */}
             <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Content Settings
-              </h2>
-              <TestSetting
-                label="Content Settings"
-                textSettings={contentSettings}
-                handleSettingsChange={handleContentSettingsChange}
-              />
-            </div>
+              {/* title settings */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">
+                  Title Settings
+                </h2>
+                <TestSetting
+                  label="Title Settings"
+                  textSettings={titleSettings}
+                  handleSettingsChange={handleTitleSettingsChange}
+                />
+              </div>
 
-            {/* footer settings */}
-            <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Footer Settings
-              </h2>
-              <TestSetting
-                label="Footer Settings"
-                textSettings={footerSettings}
-                handleSettingsChange={handleFooterSettingsChange}
-              />
+              {/* content settings */}
+              <div>
+                <h2 className="text-lg font-medium text-gray-900 mb-4">
+                  Content Settings
+                </h2>
+                <TestSetting
+                  label="Content Settings"
+                  textSettings={contentSettings}
+                  handleSettingsChange={handleContentSettingsChange}
+                />
+              </div>
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleUpdateConfig}
+                  className="btn btn-primary"
+                >
+                  Update Config
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* preview */}
+          <div>
+            <h2 className="text-center text-lg lg:text-5xl font-semibold mb-6">
+              Preview
+            </h2>
+            <div className="border rounded-lg p-6">
+              <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+            </div>
+            <div className="pt-6 text-center">
+              <button
+                onClick={handleDownloadTemplate}
+                className="btn btn-secondary hover:btn-primary"
+              >
+                Download Template
+              </button>
             </div>
           </div>
         </div>
